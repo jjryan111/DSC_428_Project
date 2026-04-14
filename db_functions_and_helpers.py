@@ -14,9 +14,9 @@ def create_table(conn, table_name, table_params, primary_key):
     for key, key_type in table_params.items():
         create_query += f'{key} {key_type}, '
     if primary_key:
-        create_query += f'PRIMARY KEY ({primary_key})'
+        create_query += f'PRIMARY KEY ({primary_key}))'  # <-- added closing )
     else:
-        create_query += create_query[:-1] + ')'
+        create_query = create_query.rstrip(', ') + ')'  # <-- fixed, strip trailing comma
     drop_query = f"DROP TABLE IF EXISTS {table_name}"
     conn.execute(drop_query)
     conn.execute(create_query)
@@ -45,9 +45,7 @@ def db_summary(db_name):
             nn_marker  = " NOT NULL" if notnull else ""
             print(f"  {name:30} {dtype:10}{pk_marker}{nn_marker}")
 
-    conn.close()
-
-def load_table(cursor, filename, sql, num_cols, batch_size):
+def load_table(cursor, filename, sql, num_cols, batch_size=1000):
     batch = []
     skipped = 0
     with open(filename, "r", encoding="utf-8-sig", errors="replace") as f:

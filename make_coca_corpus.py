@@ -96,12 +96,12 @@ def make_coca_transcript_table(conn, transcript_type, texts):
     create_table(conn, transcript_table, transcript_table_params, None )
     batch = []
     for textID, words in texts.items():
-        batch.append((textID, ' '.join(words)))
+        batch.append((textID, ','.join(words)))
         if len(batch) >= 1000:
-            conn.executemany(f"INSERT INTO coca_texts VALUES (?, ?)", batch)
+            conn.executemany(f"INSERT INTO {transcript_table} VALUES (?, ?)", batch)
             batch.clear()
     if batch:
-        conn.executemany(f"INSERT INTO coca_texts VALUES (?, ?)", batch)
+        conn.executemany(f"INSERT INTO {transcript_table} VALUES (?, ?)", batch)
 
     conn.commit()
     print(f"Inserted {len(texts)} texts into {transcript_table}")
