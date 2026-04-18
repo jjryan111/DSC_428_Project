@@ -1,5 +1,6 @@
 import sqlite3
 import csv
+import torch
 
 def create_database(conn, db_name):
     conn.execute("PRAGMA journal_mode=WAL")
@@ -45,9 +46,10 @@ def db_summary(db_name):
             nn_marker  = " NOT NULL" if notnull else ""
             print(f"  {name:30} {dtype:10}{pk_marker}{nn_marker}")
 
-def load_table(cursor, filename, sql, num_cols, batch_size=1000):
+def load_table(conn, filename, sql, num_cols, batch_size=1000):
     batch = []
     skipped = 0
+    cursor = conn.cursor()
     with open(filename, "r", encoding="utf-8-sig", errors="replace") as f:
         reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE, quotechar="\x00")
         for i, row in enumerate(reader):
@@ -62,3 +64,34 @@ def load_table(cursor, filename, sql, num_cols, batch_size=1000):
     if batch:
         cursor.executemany(sql, batch)  # insert remaining rows
     print(f"{filename}: skipped {skipped} malformed rows")
+    conn.commit()
+
+def get_table_contents(conn, table_name, query):
+    cursor = conn.cursor()
+    cursor.execute(query)
+    return cursor.fetchall()
+
+def convert_texts_to_int(text, wordbag):
+    return [int_index_word(wordbag, word) for word in text.split() if int_index_word(wordbag, word) is not None]
+
+def int_index_word(wordbag, word):
+    return wordbag.get(word)
+
+
+def save_model(model, threshold: float, path: str):
+    torch.save({
+        "model_state":       model.state_dict(),
+        "threshold":         threshold,
+        "signature_ngrams": model.ngram_extractor.signature_ngrams
+    }, path)
+
+
+def load_model(model_class, path: str, dropout: float = 0.3):
+    checkpoint = torch.load(path, map_location="cpu")
+    model = model_class(
+        signature_ngrams=checkpoint["signature_ngrams"],
+        dropout=dropout
+    )
+    model.load_state_dict(checkpoint["model_state"])
+    model.eval()
+    return model, checkpoint["threshold"]
