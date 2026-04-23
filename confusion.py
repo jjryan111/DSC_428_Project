@@ -35,7 +35,7 @@ def get_predictions(
     labels = torch.cat(all_labels).numpy()
     preds  = (probs >= threshold).astype(int)
 
-    return preds.tolist(), labels.tolist()
+    return preds.tolist(), labels.tolist(), probs.tolist()
 
 
 def plot_confusion_matrix(

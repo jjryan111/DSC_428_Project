@@ -4,7 +4,17 @@ import glob
 import sqlite3
 import json
 import os
+import re
 
+no_urls   = re.compile(r'https?://\S+')
+no_hashes = re.compile(r'#\w+')
+no_ats    = re.compile(r'@\w+')
+
+def clean_tweets(text):
+    clean = no_urls.sub('', text)
+    clean = no_hashes.sub('', clean)
+    clean = no_ats.sub('', clean)
+    return clean.strip()
 
 def load_congress_tweets(db_path: str, json_dir: str, target_rows: int = 56500):
     conn = sqlite3.connect(db_path)
@@ -39,7 +49,7 @@ def load_congress_tweets(db_path: str, json_dir: str, target_rows: int = 56500):
         for record in records:
             if count >= target_rows:
                 break
-            text = record.get("text", "").strip()
+            text = clean_tweets(record.get("text", "").strip())
             if not text:
                 continue
 
